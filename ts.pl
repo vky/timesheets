@@ -21,13 +21,13 @@ has lunch_end => (
 sub report {
     my $self = shift;
     my $sum = $self->start +
-    $self->lunch_start +
-    $self->lunch_end +
+    #$self->lunch_start +
+    #$self->lunch_end +
     $self->end;
 
     print "Start: " 	. $self->start . "\n" .
-    "Lunch start: " . $self->lunch_start . "\n" .
-    "Lunch end: " 	. $self->lunch_end . "\n" .
+    #"Lunch start: " . $self->lunch_start . "\n" .
+    #"Lunch end: " 	. $self->lunch_end . "\n" .
     "End: " 	. $self->end . "\n" .
     "Hours worked: " . $sum . "\n ";
 }
@@ -45,6 +45,7 @@ use DateTime;
 use DateTime::Duration;
 use DateTime::Format::Strptime;
 use List::Util qw(reduce);
+use Storable;
 
 =notes
 I need to store the history of a given day. This seems like a good project for 
@@ -113,32 +114,50 @@ my %day_obj = ();
 my $dt = DateTime->now;
 
 if ($start) {
-    print "Start: ";
-    my $sdt = parse_time($start);
-    $day_obj{$dt->ymd}{start} = $sdt;
-    print $start."\n";
-    print $day_obj{$dt->ymd}{start}."\n";
+#    print "Start: ";
+#    my $sdt = parse_time($start);
+#    $day_obj{$dt->ymd}{start} = $sdt;
+#    print $start."\n";
+#    print $day_obj{$dt->ymd}{start}."\n";
 }
 if ($end) {
-    print "End: ";
-    my $edt = parse_time($end);
-    $day_obj{$dt->ymd}{end} = $edt;
-    print $end."\n";
-    print $day_obj{$dt->ymd}{end}."\n";
+#    print "End: ";
+#    my $edt = parse_time($end);
+#    $day_obj{$dt->ymd}{end} = $edt;
+#    print $end."\n";
+#    print $day_obj{$dt->ymd}{end}."\n";
 }
 if ($date) {
     print "date!\n";
 }
 
+my $historyref;
+my $history_file = 'history_file';
+
+if ( -e $history_file ) {
+    $historyref = retrieve($history_file);
+}
+else {
+    open my $fh, '>>', $history_file;
+    close $fh;
+}
 
 my $test_obj = Day->new (
-    start => 1,
-    end => 2,
-    lunch_start => 3,
-    lunch_end => 4,
+    start => $start,
+    end => $end,
 );
 
-$test_obj->report;
+#$test_obj->report;
+
+push @$historyref, $test_obj;
+
+store \@$historyref, 'history_file';
+
+# print Dumper ($historyref);
+
+foreach my $day (@$historyref) {
+    $day->report;
+}
 
 my @array;
 push @array, day_hours( '02/11/13 9:00 am', '02/11/13 3:30 pm' );
