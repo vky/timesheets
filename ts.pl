@@ -95,27 +95,26 @@ The day object will need to round time to closest quarter somehow.
 =cut
 
 =flow
-if date
-    print out info about date (start, lunch start, lunch end, end, total hours)
 
-check previous day
-    if not filled out
-        prompt info
-    else
-        continue
+Simplest flow desired:
 
-if start
-    check that day can start
-        if day started
-            check whether to overwrite
-                if overwrite
-                    if time given
-                        use given time
-                    else
-                        prompt time
+perl ts.pl
 
-        else
-            continue
+Using Storable to store things. Will store days in an array.
+If last entered element in array is not today,
+    alert to what last day was
+    alert if last day was incomplete
+    alert number of days passed
+    alert to fill in any missed work days (Monday to Friday, ignoring holidays)
+        
+    if last day entered has start and end, begin new day
+
+new day determined, no arguments given:
+    fill in start automatically
+    ask if lunch
+        if lunch yes, lunch end automatically
+    fill in end automatically
+
 
 =cut
 
