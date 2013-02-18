@@ -1,3 +1,41 @@
+package Day;
+use Moo;
+
+has start => (
+	is => 'rw',
+);
+
+has end => (
+	is => 'rw',
+);
+
+has lunch_start => (
+	is => 'rw',
+);
+
+has lunch_end => (
+	is => 'rw',
+);
+
+
+sub report {
+	my $self = shift;
+	my $sum = $self->start +
+		$self->lunch_start +
+		$self->lunch_end +
+		$self->end;
+
+	print "Start: " 	. $self->start . "\n" .
+		"Lunch start: " . $self->lunch_start . "\n" .
+		"Lunch end: " 	. $self->lunch_end . "\n" .
+		"End: " 	. $self->end . "\n" .
+		"Hours worked: " . $sum . "\n ";
+}
+
+1;
+
+
+
 use 5.016;
 use strict;
 use warnings;
@@ -19,7 +57,6 @@ The day object will need to round time to closest quarter somehow.
 =cut
 
 =flow
-
 if date
 	print out info about date (start, lunch start, lunch end, end, total hours)
 
@@ -42,63 +79,66 @@ if start
 		else
 			continue
 
-
-
 =cut
 
 =structure
-Monday
+history
+	n-days
+	stack like
+
+day
 	start
 	end
-Tuesday
-	start
 	lunch
 		start
 		end
-	end
-Wednesday
-	start
-	end
-Thursday
-	start
-	end
-Friday
-	start
-	end
-
+	holiday
+	pto
 =cut
 
-my $date;
-my $start;
-my $end;
-my @holidays;
-my $holiday_list;
+
+
+
+my ($date, $start, $end, $report, @holidays);
 
 GetOptions (
-	'start'	=> \$start,
-	'end'	=> \$end,
-	'date'	=> \$date,
-	'holidays=s{15}'=> \@holidays
+	'start=s'	=> \$start,
+	'end=s'		=> \$end,
+	'date'		=> \$date,
+	'holidays=s{15}'=> \@holidays,
+	'report' 	=> \$report,
 );
 
+my %day_obj = ();
+my $dt = DateTime->now;
+
 if ($start) {
-	print "Start!\n";
+	print "Start: ";
+	my $sdt = parse_time($start);
+	$day_obj{$dt->ymd}{start} = $sdt;
+	print $start."\n";
+	print $day_obj{$dt->ymd}{start}."\n";
+}
+if ($end) {
+	print "End: ";
+	my $edt = parse_time($end);
+	$day_obj{$dt->ymd}{end} = $edt;
+	print $end."\n";
+	print $day_obj{$dt->ymd}{end}."\n";
 }
 if ($date) {
 	print "date!\n";
 }
-if ($end) {
-	print "end!\n";
-}
-
-print Dumper(@holidays);
 
 
-my $dt = DateTime->now;
-print $dt."\n";
-print $dt->ymd."\n";
+my $test_obj = Day->new (
+	start => 1,
+	end => 2,
+	lunch_start => 3,
+	lunch_end => 4,
+);
 
-print "\n";
+$test_obj->report;
 
 my @array;
 push @array, day_hours( '02/11/13 9:00 am', '02/11/13 3:30 pm' );
@@ -126,6 +166,21 @@ sub day_hours {
 	$t2 = $parser->parse_datetime($t2);
 	return $t2 - $t1;
 
+}
+
+sub parse_time {
+	my ($t1) = @_;
+	my $parser = DateTime::Format::Strptime->new(
+		pattern => '%I:%M%p',
+		on_error => 'croak',
+	);
+
+	my $temp_time = $parser->parse_datetime($t1);
+	my $now = DateTime->now;
+	$now->set(hour => $temp_time->hour);
+	$now->set(minute => $temp_time->minute);
+	$now->set(second => 0);
+	return $now;
 }
 
 __END__
