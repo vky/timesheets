@@ -1,5 +1,12 @@
 package Day;
 use Moo;
+use DateTime;
+use DateTime::Duration;
+use DateTime::Format::Strptime;
+
+has date => (
+    is => 'rw',
+);
 
 has start => (
     is => 'rw',
@@ -17,19 +24,49 @@ has lunch_end => (
     is => 'rw',
 );
 
+sub make_time {
+    my $t1 = shift;
+    my $parser = DateTime::Format::Strptime->new(
+        pattern => '%I:%M%p',
+        on_error => 'croak',
+    );
 
-sub report {
+    my $temp_time = $parser->parse_datetime($t1);
+    my $now = DateTime->now;
+    $now->set(hour => $temp_time->hour);
+    $now->set(minute => $temp_time->minute);
+    $now->set(second => 0);
+    return $now;
+}
+
+sub hours {
     my $self = shift;
-    my $sum = $self->start +
-    #$self->lunch_start +
-    #$self->lunch_end +
-    $self->end;
 
-    print "Start: " 	. $self->start . "\n" .
-    #"Lunch start: " . $self->lunch_start . "\n" .
-    #"Lunch end: " 	. $self->lunch_end . "\n" .
-    "End: " 	. $self->end . "\n" .
-    "Hours worked: " . $sum . "\n ";
+    my $start        = make_time($self->start) if defined $self->start;
+    my $end          = make_time($self->end) if defined $self->end;
+    my $lunch_start  = make_time($self->lunch_start) if defined $self->lunch_start;
+    my $lunch_end    = make_time($self->lunch_end) if defined $self->lunch_end;
+
+    my $hours;
+
+    if ( defined $start && defined $end ) {
+        if ( defined $lunch_start && defined $lunch_end ) {
+            $hours = ($lunch_start - $start) + ($end - $lunch_end);
+            return $hours->hours . " hours and " . $hours->minutes . " minutes.\n";
+        }
+
+        #else {
+        #    # Figure out whether lunch_start or lunch_end is missing.
+        #    return "Error: Lunch_start or lunch_end is not defined.\n";
+        #}
+
+        $hours = $end - $start;
+        return $hours->hours . " hours and " . $hours->minutes . " minutes.\n";
+    }
+    else {
+        # Figure out whether start or end is missing.
+        return "Error: Start or end is not defined.\n";
+    }
 }
 
 1;
@@ -100,107 +137,94 @@ day
 
 
 
-my ($date, $start, $end, $report, @holidays);
+my ($date, $start, $end, $lunch_start, $lunch_end, $report, @holidays);
+
+my $test = Day->new();
 
 GetOptions (
-    'start=s'	=> \$start,
-'end=s'		=> \$end,
-    'date'		=> \$date,
-'holidays=s{15}'=> \@holidays,
-    'report' 	=> \$report,
+    'start=s'       => \$start,
+    'end=s'         => \$end,
+    'lunch_start|ls=s' => \$lunch_start,
+    'lunch_end|le=s'   => \$lunch_end,
+    'date'          => \$date,
+    'holidays=s{15}'=> \@holidays,
+    'report'        => \$report,
 );
 
-my %day_obj = ();
-my $dt = DateTime->now;
-
 if ($start) {
-#    print "Start: ";
-#    my $sdt = parse_time($start);
-#    $day_obj{$dt->ymd}{start} = $sdt;
-#    print $start."\n";
-#    print $day_obj{$dt->ymd}{start}."\n";
+    $test->start($start);
+}
+if ($lunch_start) {
+    $test->lunch_start($lunch_start);
 }
 if ($end) {
-#    print "End: ";
-#    my $edt = parse_time($end);
-#    $day_obj{$dt->ymd}{end} = $edt;
-#    print $end."\n";
-#    print $day_obj{$dt->ymd}{end}."\n";
+    $test->end($end);
+}
+if ($lunch_end) {
+    $test->lunch_end($lunch_end);
 }
 if ($date) {
     print "date!\n";
 }
 
-my $historyref;
-my $history_file = 'history_file';
+print $test->hours;
 
-if ( -e $history_file ) {
-    $historyref = retrieve($history_file);
-}
-else {
-    open my $fh, '>>', $history_file;
-    close $fh;
-}
-
-my $test_obj = Day->new (
-    start => $start,
-    end => $end,
-);
-
-#$test_obj->report;
-
-push @$historyref, $test_obj;
-
-store \@$historyref, 'history_file';
-
+# my $historyref;
+# my $history_file = 'history_file';
+# 
+# if ( -e $history_file ) {
+#     $historyref = retrieve($history_file);
+# }
+# else {
+#     open my $fh, '>>', $history_file;
+#     close $fh;
+# }
+# 
+# my $test_obj = Day->new (
+#     start => $start,
+#     end => $end,
+# );
+# 
+# $test_obj->report;
+# 
+# push @$historyref, $test_obj;
+# 
+# store \@$historyref, 'history_file';
+# 
 # print Dumper ($historyref);
+# 
+# foreach my $day (@$historyref) {
+#     $day->report;
+# }
 
-foreach my $day (@$historyref) {
-    $day->report;
-}
+# my @array;
+# push @array, day_hours( '02/11/13 9:00 am', '02/11/13 3:30 pm' );
+# push @array, day_hours( '02/12/13 9:00 am', '02/12/13 3:30 pm' );
+# push @array, day_hours( '02/13/13 9:00 am', '02/13/13 3:30 pm' );
+# push @array, day_hours( '02/14/13 9:00 am', '02/14/13 3:30 pm' );
+# push @array, day_hours( '02/15/13 9:00 am', '02/15/13 3:30 pm' );
+# my $week = reduce { no warnings qw(once); $a + $b } @array;
+# 
+# pretty_hours($week);
+# 
+# sub pretty_hours {
+#     my ($hours) = @_;
+#     print $hours->hours.":".$hours->minutes."\n";
+# }
+# 
+# sub day_hours {
+#     my ($t1, $t2) = @_;
+#     my $parser = DateTime::Format::Strptime->new(
+#         pattern => '%D %I:%M %p',
+#         on_error => 'croak',
+#     );
+# 
+#     $t1 = $parser->parse_datetime($t1);
+#     $t2 = $parser->parse_datetime($t2);
+#     return $t2 - $t1;
+# 
+# }
 
-my @array;
-push @array, day_hours( '02/11/13 9:00 am', '02/11/13 3:30 pm' );
-push @array, day_hours( '02/12/13 9:00 am', '02/12/13 3:30 pm' );
-push @array, day_hours( '02/13/13 9:00 am', '02/13/13 3:30 pm' );
-push @array, day_hours( '02/14/13 9:00 am', '02/14/13 3:30 pm' );
-push @array, day_hours( '02/15/13 9:00 am', '02/15/13 3:30 pm' );
-my $week = reduce { no warnings qw(once); $a + $b } @array;
-
-pretty_hours($week);
-
-sub pretty_hours {
-    my ($hours) = @_;
-    print $hours->hours.":".$hours->minutes."\n";
-}
-
-sub day_hours {
-    my ($t1, $t2) = @_;
-    my $parser = DateTime::Format::Strptime->new(
-        pattern => '%D %I:%M %p',
-        on_error => 'croak',
-    );
-
-    $t1 = $parser->parse_datetime($t1);
-    $t2 = $parser->parse_datetime($t2);
-    return $t2 - $t1;
-
-}
-
-sub parse_time {
-    my ($t1) = @_;
-    my $parser = DateTime::Format::Strptime->new(
-        pattern => '%I:%M%p',
-        on_error => 'croak',
-    );
-
-    my $temp_time = $parser->parse_datetime($t1);
-    my $now = DateTime->now;
-    $now->set(hour => $temp_time->hour);
-    $now->set(minute => $temp_time->minute);
-    $now->set(second => 0);
-    return $now;
-}
 
 __END__
 
