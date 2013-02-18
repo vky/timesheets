@@ -2,34 +2,34 @@ package Day;
 use Moo;
 
 has start => (
-	is => 'rw',
+    is => 'rw',
 );
 
 has end => (
-	is => 'rw',
+    is => 'rw',
 );
 
 has lunch_start => (
-	is => 'rw',
+    is => 'rw',
 );
 
 has lunch_end => (
-	is => 'rw',
+    is => 'rw',
 );
 
 
 sub report {
-	my $self = shift;
-	my $sum = $self->start +
-		$self->lunch_start +
-		$self->lunch_end +
-		$self->end;
+    my $self = shift;
+    my $sum = $self->start +
+    $self->lunch_start +
+    $self->lunch_end +
+    $self->end;
 
-	print "Start: " 	. $self->start . "\n" .
-		"Lunch start: " . $self->lunch_start . "\n" .
-		"Lunch end: " 	. $self->lunch_end . "\n" .
-		"End: " 	. $self->end . "\n" .
-		"Hours worked: " . $sum . "\n ";
+    print "Start: " 	. $self->start . "\n" .
+    "Lunch start: " . $self->lunch_start . "\n" .
+    "Lunch end: " 	. $self->lunch_end . "\n" .
+    "End: " 	. $self->end . "\n" .
+    "Hours worked: " . $sum . "\n ";
 }
 
 1;
@@ -58,42 +58,42 @@ The day object will need to round time to closest quarter somehow.
 
 =flow
 if date
-	print out info about date (start, lunch start, lunch end, end, total hours)
+    print out info about date (start, lunch start, lunch end, end, total hours)
 
 check previous day
-	if not filled out
-		prompt info
-	else
-		continue
+    if not filled out
+        prompt info
+    else
+        continue
 
 if start
-	check that day can start
-		if day started
-			check whether to overwrite
-				if overwrite
-					if time given
-						use given time
-					else
-						prompt time
-					
-		else
-			continue
+    check that day can start
+        if day started
+            check whether to overwrite
+                if overwrite
+                    if time given
+                        use given time
+                    else
+                        prompt time
+
+        else
+            continue
 
 =cut
 
 =structure
 history
-	n-days
-	stack like
+    n-days
+    stack like
 
 day
-	start
-	end
-	lunch
-		start
-		end
-	holiday
-	pto
+    start
+    end
+    lunch
+        start
+        end
+    holiday
+    pto
 =cut
 
 
@@ -102,40 +102,40 @@ day
 my ($date, $start, $end, $report, @holidays);
 
 GetOptions (
-	'start=s'	=> \$start,
-	'end=s'		=> \$end,
-	'date'		=> \$date,
-	'holidays=s{15}'=> \@holidays,
-	'report' 	=> \$report,
+    'start=s'	=> \$start,
+'end=s'		=> \$end,
+    'date'		=> \$date,
+'holidays=s{15}'=> \@holidays,
+    'report' 	=> \$report,
 );
 
 my %day_obj = ();
 my $dt = DateTime->now;
 
 if ($start) {
-	print "Start: ";
-	my $sdt = parse_time($start);
-	$day_obj{$dt->ymd}{start} = $sdt;
-	print $start."\n";
-	print $day_obj{$dt->ymd}{start}."\n";
+    print "Start: ";
+    my $sdt = parse_time($start);
+    $day_obj{$dt->ymd}{start} = $sdt;
+    print $start."\n";
+    print $day_obj{$dt->ymd}{start}."\n";
 }
 if ($end) {
-	print "End: ";
-	my $edt = parse_time($end);
-	$day_obj{$dt->ymd}{end} = $edt;
-	print $end."\n";
-	print $day_obj{$dt->ymd}{end}."\n";
+    print "End: ";
+    my $edt = parse_time($end);
+    $day_obj{$dt->ymd}{end} = $edt;
+    print $end."\n";
+    print $day_obj{$dt->ymd}{end}."\n";
 }
 if ($date) {
-	print "date!\n";
+    print "date!\n";
 }
 
 
 my $test_obj = Day->new (
-	start => 1,
-	end => 2,
-	lunch_start => 3,
-	lunch_end => 4,
+    start => 1,
+    end => 2,
+    lunch_start => 3,
+    lunch_end => 4,
 );
 
 $test_obj->report;
@@ -151,36 +151,36 @@ my $week = reduce { no warnings qw(once); $a + $b } @array;
 pretty_hours($week);
 
 sub pretty_hours {
-	my ($hours) = @_;
-	print $hours->hours.":".$hours->minutes."\n";
+    my ($hours) = @_;
+    print $hours->hours.":".$hours->minutes."\n";
 }
 
 sub day_hours {
-	my ($t1, $t2) = @_;
-	my $parser = DateTime::Format::Strptime->new(
-		pattern => '%D %I:%M %p',
-		on_error => 'croak',
-	);
+    my ($t1, $t2) = @_;
+    my $parser = DateTime::Format::Strptime->new(
+        pattern => '%D %I:%M %p',
+        on_error => 'croak',
+    );
 
-	$t1 = $parser->parse_datetime($t1);
-	$t2 = $parser->parse_datetime($t2);
-	return $t2 - $t1;
+    $t1 = $parser->parse_datetime($t1);
+    $t2 = $parser->parse_datetime($t2);
+    return $t2 - $t1;
 
 }
 
 sub parse_time {
-	my ($t1) = @_;
-	my $parser = DateTime::Format::Strptime->new(
-		pattern => '%I:%M%p',
-		on_error => 'croak',
-	);
+    my ($t1) = @_;
+    my $parser = DateTime::Format::Strptime->new(
+        pattern => '%I:%M%p',
+        on_error => 'croak',
+    );
 
-	my $temp_time = $parser->parse_datetime($t1);
-	my $now = DateTime->now;
-	$now->set(hour => $temp_time->hour);
-	$now->set(minute => $temp_time->minute);
-	$now->set(second => 0);
-	return $now;
+    my $temp_time = $parser->parse_datetime($t1);
+    my $now = DateTime->now;
+    $now->set(hour => $temp_time->hour);
+    $now->set(minute => $temp_time->minute);
+    $now->set(second => 0);
+    return $now;
 }
 
 __END__
