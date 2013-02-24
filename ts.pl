@@ -2,15 +2,15 @@
 Day
     attributes
         date
-            DateTime object containing only the Date. Format: MM/DD/YYYY
+            Format: MM/DD/YYYY
         start
-            Time: format ('hour:minutes;am|pm') [semi-colon excluded]
+            DateTime object. Initially had the idea of just having the time here, but a DateTime object is simpler.
         lunch_start
-            Time: format ('hour:minutes;am|pm') [semi-colon excluded]
+            DateTime object. 
         lunch_end
-            Time: format ('hour:minutes;am|pm') [semi-colon excluded]
+            DateTime object.
         end
-            Time: format ('hour:minutes;am|pm') [semi-colon excluded]
+            DateTime object.
     methods
         make_time
             Should technically be a private method, but not figuring that out now.
@@ -156,7 +156,7 @@ day
 
 my ($date, $start, $end, $lunch_start, $lunch_end, $report, @holidays);
 
-my $Day = Day->new();
+my $current = DateTime->now();
 
 GetOptions (
     'start=s'           => \$start,
@@ -170,47 +170,94 @@ GetOptions (
 
 my $historyref;
 my $history_file = 'history_file';
+my @history;
 
 # Check if the history file exists.
 # If it exists, retrieve data from it.
 # Otherwise, create it.
 if ( -e $history_file ) {
     $historyref = retrieve($history_file);
+    @history = @$historyref;
 }
 else {
     open my $fh, '>>', $history_file;
     close $fh;
 }
 
-my $last_entry = get_last_entry($historyref);
-my $today = DateTime->now()->mdy('/');
-if ($last_entry->day == $today) {
-   check_start();
-   check_lunch_start();
-   check_lunch_end();
-   check_end();
+my $last_entry = pop @history;
+if ($last_entry->day == $current->mdy('/')) {
+    if (defined $last_entry->start) {
+        if (defined $last_entry->lunch_start) {
+            if (defined $last_entry->lunch_end) {
+                if (defined $last_entry->end) {
+                    print "You have already ended the day at " . $last_entry->end . ". Would you like to change your end time?";
+                    # request input, accept y/yes, or n/no
+                }
+                else {
+                    $last_entry->end($current);
+                    $last_entry->report;
+                    push @history, $last_entry;
+                    store \@history, 'history_file';
+                }
+            }
+            else {
+                $last_entry->lunch_end($current);
+                $last_entry->report;
+                push @history, $last_entry;
+                store \@history, 'history_file';
+            }
+        }
+        else {
+            if ($lunch_start) {
+                # $lunch_start requires a value but,
+                # I don't really care what $lunch_start is in this scenario 
+                $last_entry->lunch_start($current);
+                $last_entry->report;
+                push @history, $last_entry;
+                store \@history, 'history_file';
+            }
+            else {}
+        }
+   }
+   else {
+
+       print "Start is not defined, and yet there is an entry for the current day. This is a bug. Assigning current time to start.";
+       $last_entry->lunch_start($current);
+       $last_entry->report;
+       push @history, $last_entry;
+       store \@history, 'history_file';
+   }
 }
-elsif (yesterday($last_entry)) {
-}
+### Do this later, it requires thought.
+#elsif (previous_work_day($last_entry)) {
+#}
+### Assume there is no previous entry
 else {
+    my $test_obj = Day->new (
+        date => $current->mdy('/'),
+        start => $current,
+    );
+    
+    $test_obj->report;
+    push @$historyref, $test_obj;
+    store \@$historyref, 'history_file';
 }
 
-my $test_obj = Day->new (
-    start => $start,
-    end => $end,
-);
-
-$test_obj->report;
-
-push @$historyref, $test_obj;
-
-store \@$historyref, 'history_file';
-
-print Dumper ($historyref);
-
-foreach my $day (@$historyref) {
-    $day->report;
-}
+### Test code, was useful, now in use, can probably delete.
+# my $test_obj = Day->new (
+#     start => $start,
+#     end => $end,
+# );
+# 
+# $test_obj->report;
+# push @$historyref, $test_obj;
+# store \@$historyref, 'history_file';
+# 
+# print Dumper ($historyref);
+# 
+# foreach my $day (@$historyref) {
+#     $day->report;
+# }
 
 
 
