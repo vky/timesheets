@@ -1,3 +1,20 @@
+=notes
+Day
+    attributes
+        start
+            Time: format ('hour:minutes;am|pm') [semi-colon excluded]
+        lunch_start
+            Time: format ('hour:minutes;am|pm') [semi-colon excluded]
+        lunch_end
+            Time: format ('hour:minutes;am|pm') [semi-colon excluded]
+        end
+            Time: format ('hour:minutes;am|pm') [semi-colon excluded]
+    methods
+        make_time
+            Should technically be a private method, but not figuring that out now.
+        hours
+            Returns string. String is in format '$hours hours and $minutes minutes.'.
+=cut
 package Day;
 use Moo;
 use DateTime;
