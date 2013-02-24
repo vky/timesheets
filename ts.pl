@@ -1,6 +1,8 @@
 =notes
 Day
     attributes
+        date
+            DateTime object containing only the Date. Format: MM/DD/YYYY
         start
             Time: format ('hour:minutes;am|pm') [semi-colon excluded]
         lunch_start
@@ -118,6 +120,7 @@ Simplest flow desired:
 perl ts.pl
 
 Using Storable to store things. Will store days in an array.
+
 If last entered element in array is not today,
     alert to what last day was
     alert if last day was incomplete
@@ -151,67 +154,67 @@ day
 =cut
 
 
-
-
 my ($date, $start, $end, $lunch_start, $lunch_end, $report, @holidays);
 
-my $test = Day->new();
+my $Day = Day->new();
 
 GetOptions (
-    'start=s'       => \$start,
-    'end=s'         => \$end,
-    'lunch_start|ls=s' => \$lunch_start,
-    'lunch_end|le=s'   => \$lunch_end,
-    'date'          => \$date,
-    'holidays=s{15}'=> \@holidays,
-    'report'        => \$report,
+    'start=s'           => \$start,
+    'end=s'             => \$end,
+    'lunch_start|ls=s'  => \$lunch_start,
+    'lunch_end|le=s'    => \$lunch_end,
+    'date'              => \$date,
+    'holidays=s{15}'    => \@holidays,
+    'report'            => \$report,
 );
 
-if ($start) {
-    $test->start($start);
+my $historyref;
+my $history_file = 'history_file';
+
+# Check if the history file exists.
+# If it exists, retrieve data from it.
+# Otherwise, create it.
+if ( -e $history_file ) {
+    $historyref = retrieve($history_file);
 }
-if ($lunch_start) {
-    $test->lunch_start($lunch_start);
-}
-if ($end) {
-    $test->end($end);
-}
-if ($lunch_end) {
-    $test->lunch_end($lunch_end);
-}
-if ($date) {
-    print "date!\n";
+else {
+    open my $fh, '>>', $history_file;
+    close $fh;
 }
 
-print $test->hours;
+my $last_entry = get_last_entry($historyref);
+my $today = DateTime->now()->mdy('/');
+if ($last_entry->day == $today) {
+   check_start();
+   check_lunch_start();
+   check_lunch_end();
+   check_end();
+}
+elsif (yesterday($last_entry)) {
+}
+else {
+}
 
-# my $historyref;
-# my $history_file = 'history_file';
-# 
-# if ( -e $history_file ) {
-#     $historyref = retrieve($history_file);
-# }
-# else {
-#     open my $fh, '>>', $history_file;
-#     close $fh;
-# }
-# 
-# my $test_obj = Day->new (
-#     start => $start,
-#     end => $end,
-# );
-# 
-# $test_obj->report;
-# 
-# push @$historyref, $test_obj;
-# 
-# store \@$historyref, 'history_file';
-# 
-# print Dumper ($historyref);
-# 
-# foreach my $day (@$historyref) {
-#     $day->report;
-# }
+my $test_obj = Day->new (
+    start => $start,
+    end => $end,
+);
+
+$test_obj->report;
+
+push @$historyref, $test_obj;
+
+store \@$historyref, 'history_file';
+
+print Dumper ($historyref);
+
+foreach my $day (@$historyref) {
+    $day->report;
+}
+
+
+
+
 
 # my @array;
 # push @array, day_hours( '02/11/13 9:00 am', '02/11/13 3:30 pm' );
