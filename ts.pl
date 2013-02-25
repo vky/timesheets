@@ -43,34 +43,24 @@ has lunch_end => (
     is => 'rw',
 );
 
-sub make_time {
-    my $t1 = shift;
-    my $parser = DateTime::Format::Strptime->new(
-        pattern => '%I:%M%p',
-        on_error => 'croak',
-    );
 
-    my $temp_time = $parser->parse_datetime($t1);
-    my $now = DateTime->now;
-    $now->set(hour => $temp_time->hour);
-    $now->set(minute => $temp_time->minute);
-    $now->set(second => 0);
-    return $now;
-}
-
-sub hours {
+sub report {
     my $self = shift;
 
-    my $start        = make_time($self->start) if defined $self->start;
-    my $end          = make_time($self->end) if defined $self->end;
-    my $lunch_start  = make_time($self->lunch_start) if defined $self->lunch_start;
-    my $lunch_end    = make_time($self->lunch_end) if defined $self->lunch_end;
+    my $start        = $self->start if defined $self->start;
+    my $end          = $self->end if defined $self->end;
+    my $lunch_start  = $self->lunch_start if defined $self->lunch_start;
+    my $lunch_end    = $self->lunch_end if defined $self->lunch_end;
 
     my $hours;
 
     if ( defined $start && defined $end ) {
         if ( defined $lunch_start && defined $lunch_end ) {
             $hours = ($lunch_start - $start) + ($end - $lunch_end);
+            print "Start: " . $start."\n";
+            print "Lunch start: " . $lunch_start."\n";
+            print "Lunch end: " . $lunch_end."\n";
+            print "End: " . $end."\n";
             return $hours->hours . " hours and " . $hours->minutes . " minutes.\n";
         }
 
@@ -80,6 +70,10 @@ sub hours {
         #}
 
         $hours = $end - $start;
+        print "Start: " . $start."\n";
+        print "Lunch start: " . $lunch_start."\n" if defined $lunch_start;
+        print "Lunch end: " . $lunch_end."\n" if defined $lunch_end;
+        print "End: " . $end."\n";
         return $hours->hours . " hours and " . $hours->minutes . " minutes.\n";
     }
     else {
@@ -157,13 +151,14 @@ day
 my ($date, $start, $end, $lunch_start, $lunch_end, $report, @holidays);
 
 my $current = DateTime->now();
+print "The current date/time is: " . $current . "\n\n";
 
 GetOptions (
     'start=s'           => \$start,
     'end=s'             => \$end,
     'lunch_start|ls=s'  => \$lunch_start,
     'lunch_end|le=s'    => \$lunch_end,
-    'date'              => \$date,
+    'date=s'            => \$date,
     'holidays=s{15}'    => \@holidays,
     'report'            => \$report,
 );
@@ -175,7 +170,7 @@ my @history;
 # Check if the history file exists.
 # If it exists, retrieve data from it.
 # Otherwise, create it.
-if ( -e $history_file ) {
+if ( -e $history_file and -s $history_file) {
     $historyref = retrieve($history_file);
     @history = @$historyref;
 }
@@ -184,64 +179,176 @@ else {
     close $fh;
 }
 
-my $last_entry = pop @history;
-if ($last_entry->day == $current->mdy('/')) {
-    if (defined $last_entry->start) {
-        if (defined $last_entry->lunch_start) {
-            if (defined $last_entry->lunch_end) {
-                if (defined $last_entry->end) {
-                    print "You have already ended the day at " . $last_entry->end . ". Would you like to change your end time?";
-                    # request input, accept y/yes, or n/no
-                }
-                else {
-                    $last_entry->end($current);
-                    $last_entry->report;
-                    push @history, $last_entry;
-                    store \@history, 'history_file';
-                }
-            }
-            else {
-                $last_entry->lunch_end($current);
-                $last_entry->report;
-                push @history, $last_entry;
-                store \@history, 'history_file';
-            }
-        }
-        else {
-            if ($lunch_start) {
-                # $lunch_start requires a value but,
-                # I don't really care what $lunch_start is in this scenario 
-                $last_entry->lunch_start($current);
-                $last_entry->report;
-                push @history, $last_entry;
-                store \@history, 'history_file';
-            }
-            else {}
-        }
-   }
-   else {
-
-       print "Start is not defined, and yet there is an entry for the current day. This is a bug. Assigning current time to start.";
-       $last_entry->lunch_start($current);
-       $last_entry->report;
-       push @history, $last_entry;
-       store \@history, 'history_file';
-   }
-}
-### Do this later, it requires thought.
-#elsif (previous_work_day($last_entry)) {
-#}
 ### Assume there is no previous entry
-else {
+if (scalar @history < 1) {
     my $test_obj = Day->new (
         date => $current->mdy('/'),
         start => $current,
     );
     
-    $test_obj->report;
-    push @$historyref, $test_obj;
-    store \@$historyref, 'history_file';
+    print "No history.\n";
+    print "Start reached.\n";
+    print $test_obj->report;
+    push @history, $test_obj;
+    store \@history, 'history_file';
 }
+else {
+    if ($date) {
+        print "Sorry, I'm not checking if this day that you've entered exists yet. If it does, you just overwrote it.\n";
+        $date = make_date($date);
+        print $date."\n";
+        my $some_day = Day->new (
+            date => $date->mdy('/'),
+        );
+
+        if ( defined $start && defined $end ) {
+            $some_day->start(make_time($start, $date));
+            $some_day->end(make_time($end, $date));
+            if ( defined $lunch_start && defined $lunch_end ) {
+                $some_day->lunch_start(make_time($lunch_start, $date));
+                $some_day->lunch_end(make_time($lunch_end, $date));
+            }
+            elsif ( defined $lunch_start or defined $lunch_end) {
+                print "You're missing either lunch start or lunch end, that's no good!\n";
+            }
+            else {
+            }
+
+            print "Date given.\n";
+            print $some_day->report;
+            push @history, $some_day;
+            # sort array by date before storing.
+            # sort order should be greatest first, want the most recent date
+            # at the top.
+            @history = sort date_sort @history;
+            store \@history, 'history_file';
+        }
+        else {
+            print "You're missing either start or end, that's no good!\n";
+        }
+        
+    }
+    else {
+        my $last_entry = pop @history;
+        if ($last_entry->date eq $current->mdy('/')) {
+            if (defined $last_entry->start) {
+                if (defined $last_entry->lunch_start) {
+                    if (defined $last_entry->lunch_end) {
+                        if (defined $last_entry->end) {
+                            print "You have already ended the day at " . $last_entry->end . ". Would you like to change your end time?";
+                            # request input, accept y/yes, or n/no
+                        }
+                        else {
+                            $last_entry->end($current);
+                            print "End reached.\n";
+                            print $last_entry->report;
+                            push @history, $last_entry;
+                            store \@history, 'history_file';
+                        }
+                    }
+                    else {
+                        $last_entry->lunch_end($current);
+                        print "Lunch end reached.\n";
+                        print $last_entry->report;
+                        push @history, $last_entry;
+                        store \@history, 'history_file';
+                    }
+                }
+                else {
+                    if ($lunch_start) {
+                        # $lunch_start requires a value but,
+                        # I don't really care what $lunch_start is in this scenario 
+                        $last_entry->lunch_start($current);
+                        print "Lunch start reached.\n";
+                        print $last_entry->report;
+                        push @history, $last_entry;
+                        store \@history, 'history_file';
+                    }
+                    elsif (defined $last_entry->lunch_end) {
+                        if (defined $last_entry->end) {
+                            print "You have already ended the day at " . $last_entry->end . ". Would you like to change your end time?";
+                            # request input, accept y/yes, or n/no
+                        }
+                        else {
+                            $last_entry->end($current);
+                            print "End reached.\n";
+                            print $last_entry->report;
+                            push @history, $last_entry;
+                            store \@history, 'history_file';
+                        }
+                    }
+                    else {
+                        $last_entry->end($current);
+                        print "End reached.\n";
+                        print $last_entry->report;
+                        push @history, $last_entry;
+                        store \@history, 'history_file';
+                    }
+                }
+            }
+            else {
+                print "Start is not defined, and yet there is an entry for the current day. This is a bug. Assigning current time to start.";
+                $last_entry->start($current);
+                print "Buggy Start reached.\n";
+                print $last_entry->report;
+                push @history, $last_entry;
+                store \@history, 'history_file';
+            }
+        }
+        else {
+            print "date is note today's date! wtf!\n";
+        }
+    }
+}
+### Do this later, it requires thought.
+#elsif (previous_work_day($last_entry)) {
+#}
+
+
+if ($report) {
+    print "There are " . scalar @history . "days stored.\n";
+    foreach my $day (@history) {
+        print $day->date."\n";
+
+    }
+}
+
+sub make_time {
+    my ($t1, $date) = @_;
+    my $parser = DateTime::Format::Strptime->new(
+        pattern => '%I:%M%p',
+        on_error => 'croak',
+    );
+
+    my $temp_time = $parser->parse_datetime($t1);
+    return DateTime->new(
+        year       => $date->year,
+        month      => $date->month,
+        day        => $date->day,
+        hour       => $temp_time->hour,
+        minute     => $temp_time->minute,
+        second     => 0,
+    );
+}
+
+sub make_date {
+    my $t1 = shift;
+    my $parser = DateTime::Format::Strptime->new(
+        pattern => '%D',
+        on_error => 'croak',
+    );
+
+    return $parser->parse_datetime($t1);
+}
+
+sub date_sort {
+    make_date($a->date) > make_date($b->date);
+}
+
+
+
+
+
 
 ### Test code, was useful, now in use, can probably delete.
 # my $test_obj = Day->new (
